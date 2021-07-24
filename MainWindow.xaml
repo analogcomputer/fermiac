@@ -1,0 +1,20 @@
+﻿<Window x:Class="fermiac.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:fermiac"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Loaded="Window_Loaded" Width="800" Background="Black">
+    <Grid>
+        <ListView Name="MessageListView" Background="Black" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Background="Black" >
+                        <TextBlock FontFamily="Cascadia Code" Background="Black" Foreground="{Binding forecolor}" Text="{Binding msg}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Window>
