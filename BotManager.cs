@@ -43,37 +43,6 @@ namespace fermiac
             }
         }
 
-        private string ssmlTemplate
-        {
-            get
-            {
-                return ("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"{0}\">{2}. {1}</voice></speak>");
-            }
-        }
-
-        private string filter(string input)
-        {
-            var rgx = new Regex(@"^\w+!(\w.*)");
-            var cheers = new string[] { "cheer", "uni", "pogchamp", "cheerwal", "corgo", "showlove", "party", "seemsgood", "pride", "kappa", "frankerz", "heyguys", "dansgame", "elegiggle", "trihard", "kreygasm", "swiftrage", "notlikethis", "failfish", "vohiyo", "pjsalt", "mrdestructoid", "bday", "ripcheer", "shamrock" };
-            foreach (var c in cheers)
-            {
-                var rgl = new Regex(@"\W*((?i)" + c + @"(?-i))\d+");
-                input = rgl.Replace(input, "bits");
-            }
-            return (rgx.Replace(input, ""));
-        }
-
-        private string map(string user)
-        {
-            switch (user.ToLower())
-            {
-                case "analogcomputer": return ("en-US-ZiraRUS");
-                case "announcement": return ("en-AU-HayleyRUS");
-                case "fermiac": return ("en-GB-George-Apollo");
-                default: return ("en-US-Guy24kRUS");
-            }
-        }
-
         private void actionLoop()
         {
             while (keepTalking)
@@ -95,63 +64,6 @@ namespace fermiac
                     act.Enact(this);
                 }
                 Thread.Sleep(50);
-            }
-        }
-
-        private void chatLoop()
-        {
-            while (keepTalking)
-            {
-                try
-                {
-                    if (chatQueue.CanDequeue)
-                    {
-                        var msgT = chatQueue.Dequeue();
-                        if (!msgT.Item2.ToLower().StartsWith("/me")) // skip actions
-                        {
-                            var user = msgT.Item1;
-                            var message = filter(msgT.Item2);
-                            var voice = map(user);
-                            if (!string.IsNullOrEmpty(message))
-                            {
-                                var msg = string.Format(ssmlTemplate, voice, message, user);
-                                if (user.ToLower() == "fermiac") client.SendMessage("analogcomputer", message);
-                                using (var synthesizer = new SpeechSynthesizer(speechConf))
-                                {
-                                    SpeechSynthesisResult result = null;
-                                    var t = Task.Run(async () =>
-                                    {
-                                        if (user.ToLower() == "fermiac") FermiacTalkStart?.Invoke();
-                                        result = await synthesizer.SpeakSsmlAsync(msg);
-                                        if (user.ToLower() == "fermiac") FermiacTalkEnd?.Invoke();
-                                    });
-                                    t.Wait();
-                                    if (result.Reason == ResultReason.SynthesizingAudioCompleted)
-                                    {
-                                        log("chat", $"user [{user}] chatted [{message}]");
-                                    }
-                                    else if (result.Reason == ResultReason.Canceled)
-                                    {
-                                        var cancellation = SpeechSynthesisCancellationDetails.FromResult(result);
-                                        log("err", $"CANCELED: Reason={cancellation.Reason}");
-
-                                        if (cancellation.Reason == CancellationReason.Error)
-                                        {
-                                            log("err", $"CANCELED: ErrorCode={cancellation.ErrorCode}");
-                                            log("err", $"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
-                                        }
-                                    }
-                                    result.Dispose();
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    log("err", $"exception in chat loop, {ex.ToString()}");
-                }
-                Thread.Sleep(100);
             }
         }
 
@@ -228,11 +140,6 @@ namespace fermiac
             loadState();
         }
 
-        public void Speak(string user, string message, int delayMS)
-        {
-            chatQueue.Enqueue(new Tuple<string, string>(user, message), delayMS);
-        }
-
         #region triggers
         private void enqueueTrigger(BotTrigger bt)
         {
@@ -241,7 +148,7 @@ namespace fermiac
                 case "random":
                     {
                         var times = bt.options.Split("|");
-                        var next = 7;// r.Next(Convert.ToInt32(times[0]), Convert.ToInt32(times[1]));
+                        var next = r.Next(Convert.ToInt32(times[0]), Convert.ToInt32(times[1]));
                         var nextTrigger = DateTime.Now.AddSeconds(next);
                         RATL.Add((nextTrigger, bt));
                         log("info", $"enqueued random action {bt.action} for {next} seconds in the future");
@@ -254,7 +161,6 @@ namespace fermiac
                         if (bt.frequency.ToLower() == "once") bt.fired = true;
                         saveState();
                         log("info", $"enqueued random action {bt.action}");
-
                         break;
                     }
             }
@@ -326,7 +232,101 @@ namespace fermiac
 
         #endregion
 
-        
+        #region azure tts
+        private string ssmlTemplate
+        {
+            get
+            {
+                return ("<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"en-US\"><voice name=\"{0}\">{2}. {1}</voice></speak>");
+            }
+        }
+
+        private string filter(string input)
+        {
+            var rgx = new Regex(@"^\w+!(\w.*)");
+            var cheers = new string[] { "cheer", "uni", "pogchamp", "cheerwal", "corgo", "showlove", "party", "seemsgood", "pride", "kappa", "frankerz", "heyguys", "dansgame", "elegiggle", "trihard", "kreygasm", "swiftrage", "notlikethis", "failfish", "vohiyo", "pjsalt", "mrdestructoid", "bday", "ripcheer", "shamrock" };
+            foreach (var c in cheers)
+            {
+                var rgl = new Regex(@"\W*((?i)" + c + @"(?-i))\d+");
+                input = rgl.Replace(input, "bits");
+            }
+            return (rgx.Replace(input, ""));
+        }
+
+        private string map(string user)
+        {
+            switch (user.ToLower())
+            {
+                case "analogcomputer": return ("en-US-ZiraRUS");
+                case "announcement": return ("en-AU-HayleyRUS");
+                case "fermiac": return ("en-GB-George-Apollo");
+                default: return ("en-US-Guy24kRUS");
+            }
+        }
+
+        public void Speak(string user, string message, int delayMS)
+        {
+            chatQueue.Enqueue(new Tuple<string, string>(user, message), delayMS);
+        }
+
+        private void chatLoop()
+        {
+            while (keepTalking)
+            {
+                try
+                {
+                    if (chatQueue.CanDequeue)
+                    {
+                        var msgT = chatQueue.Dequeue();
+                        if (!msgT.Item2.ToLower().StartsWith("/me")) // skip actions
+                        {
+                            var user = msgT.Item1;
+                            var message = filter(msgT.Item2);
+                            var voice = map(user);
+                            if (!string.IsNullOrEmpty(message))
+                            {
+                                var msg = string.Format(ssmlTemplate, voice, message, user);
+                                if (user.ToLower() == "fermiac") client.SendMessage("analogcomputer", message);
+                                using (var synthesizer = new SpeechSynthesizer(speechConf))
+                                {
+                                    SpeechSynthesisResult result = null;
+                                    var t = Task.Run(async () =>
+                                    {
+                                        if (user.ToLower() == "fermiac") FermiacTalkStart?.Invoke();
+                                        result = await synthesizer.SpeakSsmlAsync(msg);
+                                        if (user.ToLower() == "fermiac") FermiacTalkEnd?.Invoke();
+                                    });
+                                    t.Wait();
+                                    if (result.Reason == ResultReason.SynthesizingAudioCompleted)
+                                    {
+                                        log("chat", $"user [{user}] chatted [{message}]");
+                                    }
+                                    else if (result.Reason == ResultReason.Canceled)
+                                    {
+                                        var cancellation = SpeechSynthesisCancellationDetails.FromResult(result);
+                                        log("err", $"CANCELED: Reason={cancellation.Reason}");
+
+                                        if (cancellation.Reason == CancellationReason.Error)
+                                        {
+                                            log("err", $"CANCELED: ErrorCode={cancellation.ErrorCode}");
+                                            log("err", $"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
+                                        }
+                                    }
+                                    result.Dispose();
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log("err", $"exception in chat loop, {ex.ToString()}");
+                }
+                Thread.Sleep(100);
+            }
+        }
+        #endregion
+
         public void Dispose()
         {
             keepTalking = false;
