@@ -26,7 +26,11 @@ namespace fermiac {
             return new BotTriggerSet(this.Where(tx => tx.triggerOn.ToLower() == name.ToLower()));
         }
         public BotTriggerSet TriggerFor(string value) {
-            return new BotTriggerSet(this.Where(tx => tx.triggerFor.ToLower() == value.ToLower()));
+            var rset = this.Where(tx => tx.triggerFor.ToLower() == value.ToLower());
+            if(rset.Count() == 0) {
+                this.Where(tx => tx.triggerFor == "*");
+            }
+            return new BotTriggerSet(rset);
         }
 
         public BotTriggerSet Fired() {
