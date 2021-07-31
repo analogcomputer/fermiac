@@ -15,7 +15,16 @@ namespace fermiac.actions
         {
             if(lines == null) lines = new Dictionary<string, string[]>();
             fn = options["source"].Value.ToString();
-            if(!lines.ContainsKey(fn)) lines.Add(fn, System.IO.File.ReadAllLines(fn));
+            if(!lines.ContainsKey(fn)) {
+                if(System.IO.File.Exists(fn)) {
+                    lines.Add(fn, System.IO.File.ReadAllLines(fn));
+                } else {
+                    lines.Add("fn", new string[] { "that idiot analog forgot to create a file for this", "stupid analog botched this trigger" });
+                }
+            } else {
+                fn = Guid.NewGuid().ToString();
+                lines.Add("fn", new string[] { "that idiot analog forgot to define a file for this", "stupid analog botched this trigger again" });
+            }
             pause1 = Convert.ToInt32(options["pauses"][0].Value);
             pause2 = Convert.ToInt32(options["pauses"][1].Value);
         }
