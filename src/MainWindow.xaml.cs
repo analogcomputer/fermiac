@@ -58,6 +58,7 @@ namespace fermiac
                 _config["azure:speech:key"],
                 _config["azure:speech:region"]);
             (new FermiacCam(Bot)).Show();
+            (new FermiacSettings()).Show();
         }
     }
 }
