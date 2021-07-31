@@ -104,7 +104,6 @@ namespace fermiac
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(state);
             System.IO.File.WriteAllText("state.json", json);
         }
-
         public void connect(string username, string accessToken, string channel, string speechKey, string speechRegion)
         {
             ConnectionCredentials credentials = new ConnectionCredentials(username, accessToken);
@@ -141,6 +140,7 @@ namespace fermiac
 
             speechConf = SpeechConfig.FromSubscription(speechKey, speechRegion);
             loadState();
+
         }
 
         #region triggers
