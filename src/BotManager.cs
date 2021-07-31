@@ -136,6 +136,7 @@ namespace fermiac
             client.OnConnected += Client_OnConnected;
             client.OnRaidNotification += Client_OnRaidNotification;
             client.OnReSubscriber += Client_OnReSubscriber;
+            client.OnGiftedSubscription += Client_OnGiftedSubscription;
             client.Connect();
 
             speechConf = SpeechConfig.FromSubscription(speechKey, speechRegion);
@@ -177,12 +178,21 @@ namespace fermiac
         #region twitch client events
         private void Client_OnReSubscriber(object sender, OnReSubscriberArgs e)
         {
-            Speak(e.ReSubscriber.DisplayName, "analogcomputer thanks you for enabling his vide game habit", 0);
+            Speak(e.ReSubscriber.DisplayName, "analogcomputer thanks you for enabling his video game habit", 0);
         }
 
         private void Client_OnRaidNotification(object sender, OnRaidNotificationArgs e)
         {
             Speak("announcement", string.Format("raid by {0} in progress, hold on to your britches!", e.RaidNotification.DisplayName), 0);
+        }
+
+        private void Client_OnGiftedSubscription(object sender, OnGiftedSubscriptionArgs e)
+        {
+            if(e.GiftedSubscription.IsAnonymous) {
+                Speak("announcement", string.Format("analog's mysterious benefactor has gifted a sub to {0}", e.GiftedSubscription.MsgParamRecipientDisplayName), 0);
+            } else {
+                Speak("announcement", string.Format("analog thanks {1} for gifting a sub to {0}", e.GiftedSubscription.MsgParamRecipientDisplayName, e.GiftedSubscription.DisplayName), 0);
+            }
         }
 
         private void Client_OnLog(object sender, OnLogArgs e)
@@ -210,6 +220,9 @@ namespace fermiac
                 msg = msg.Replace(em, "");
             }
             if (!msg.StartsWith('!')) Speak(e.ChatMessage.Username, msg, 0);
+            if(e.ChatMessage.Bits > 0) {
+                Speak("fermiac", $"thanks for the {e.ChatMessage.Bits} bits {e.ChatMessage.Username}!", 0);                
+            }
             if (!chatters.Contains(e.ChatMessage.Username))
             {
                 chatters.Add(e.ChatMessage.Username);
@@ -233,7 +246,7 @@ namespace fermiac
 
         private void Client_OnNewSubscriber(object sender, OnNewSubscriberArgs e)
         {
-            Speak(e.Subscriber.DisplayName, "analogcomputer thanks you for enabling his vide game habit", 0);
+            Speak(e.Subscriber.DisplayName, "analogcomputer thanks you for enabling his video game habit", 0);
         }
 
         #endregion
