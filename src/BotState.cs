@@ -13,7 +13,11 @@ namespace fermiac {
             switch(this.action.ToLower()) {
                 case "chat": return new actions.Chat(this.options);
                 case "randomline": return new actions.RandomLine(this.options);
-                case "text": return new actions.Text(this.options);
+                case "text": {
+                    // acting on a bang command carries a timeout
+                    this.AvailableOn = System.DateTime.Now.AddSeconds(37);
+                    return new actions.Text(this.options);
+                } 
                 default: return null; // unsupported action
             }
         }
@@ -25,6 +29,7 @@ namespace fermiac {
         public dynamic options { get; set; }
         public string frequency { get; set; }
         public string[] triggerExceptions { get; set; }
+        public System.DateTime AvailableOn { get; set; }
     }
 
     public class BotTriggerSet : List<BotTrigger>
@@ -56,7 +61,7 @@ namespace fermiac {
         }
 
         public BotTriggerSet NotFired() {
-            return new BotTriggerSet(this.Where(tx => !tx.fired));
+            return new BotTriggerSet(this.Where(tx => !tx.fired && tx.AvailableOn <= System.DateTime.Now ));
         }
     }
 
