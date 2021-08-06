@@ -53,10 +53,7 @@ namespace fermiac
                     RATL.Remove(t);
                     if(string.IsNullOrEmpty(t.Item2.triggerOn)) {
                         // only auto-requeue when no specific trigger defined
-                        switch(t.Item2.action.ToLower()) {
-                            case "randomline": actionQueue.Enqueue(new actions.RandomLine(t.Item2.options)); break;
-                            default: actionQueue.Enqueue(new actions.Chat(t.Item2.options)); break;
-                        }
+                        actionQueue.Enqueue(t.Item2.ToAction());
                     }
                     enqueueTrigger(t.Item2); 
                 }
@@ -161,7 +158,7 @@ namespace fermiac
                     default:
                         {
                             // treat as chat action
-                            actionQueue.Enqueue(new actions.Chat(bt.options));
+                            actionQueue.Enqueue(bt.options.ToAction());
                             if (bt.frequency.ToLower() == "once") bt.fired = true;
                             saveState();
                             log("info", $"enqueued random action {bt.action}");
@@ -219,7 +216,21 @@ namespace fermiac
             {
                 msg = msg.Replace(em, "");
             }
-            if (!msg.StartsWith('!')) Speak(e.ChatMessage.Username, msg, 0);
+            if (!msg.StartsWith('!'))
+            {
+                Speak(e.ChatMessage.Username, msg, 0);
+            } else
+            {
+                // treat as bang command
+                var segments = msg.Split(' ');
+                var cmd = segments[0].Replace("!", "");
+                var commands = state.triggers.TriggerOn("bang")
+                                             .TriggerFor(cmd.ToLower())
+                                             .NotFired();
+                foreach(var c in commands) {
+                    actionQueue.Enqueue(c.ToAction());
+                }
+            }
             if(e.ChatMessage.Bits > 0) {
                 Speak("fermiac", $"thanks for the {e.ChatMessage.Bits} bits {e.ChatMessage.Username}!", 0);                
             }
@@ -231,7 +242,7 @@ namespace fermiac
                                                .NotFired();
                 foreach (var thing in thingsToDo)
                 {
-                    actionQueue.Enqueue(new actions.Chat(thing.options));
+                    actionQueue.Enqueue(thing.ToAction());
                     if (thing.frequency.ToLower() == "once") thing.fired = true;
                     saveState();
                 }
@@ -287,6 +298,10 @@ namespace fermiac
         {
             chatQueue.Enqueue(new Tuple<string, string>(user, message), delayMS);
         }
+        
+        public void Text(string channel, string message) {
+            client.SendMessage("analogcomputer", message);
+        }
 
         private void chatLoop()
         {
@@ -305,7 +320,7 @@ namespace fermiac
                             if (!string.IsNullOrEmpty(message))
                             {
                                 var msg = string.Format(ssmlTemplate, voice, message, user);
-                                if (user.ToLower() == "fermiac") client.SendMessage("analogcomputer", message);
+                                if (user.ToLower() == "fermiac") Text("analogcomputer", message);
                                 using (var synthesizer = new SpeechSynthesizer(speechConf))
                                 {
                                     SpeechSynthesisResult result = null;

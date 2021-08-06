@@ -8,6 +8,16 @@ namespace fermiac {
             triggerExceptions = new string[0];
         }
 
+        public fermiac.actions.Action ToAction()
+        {
+            switch(this.action.ToLower()) {
+                case "chat": return new actions.Chat(this.options);
+                case "randomline": return new actions.RandomLine(this.options);
+                case "text": return new actions.Text(this.options);
+                default: return null; // unsupported action
+            }
+        }
+
         public bool fired { get; set; }
         public string triggerOn { get; set; }
         public string triggerFor { get; set; }
